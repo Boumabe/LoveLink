@@ -10,16 +10,19 @@ const GEMINI_KEY = process.env.GEMINI_KEY;
 app.post('/question', async (req, res) => {
   const { langue, categorie, niveau, historique = [] } = req.body;
 
-  const langueNom = {
-    fr: 'français', en: 'English', es: 'español', ht: 'kreyòl ayisyen'
-  }[langue] || 'français';
+  const instructions = {
+    fr: `Tu es un générateur de questions pour couples. Génère UNE question en FRANÇAIS pour la catégorie "${categorie}" au niveau "${niveau}". La question ET les 4 réponses doivent être en FRANÇAIS.`,
+    en: `You are a couples quiz generator. Generate ONE question in ENGLISH for the category "${categorie}" at level "${niveau}". The question AND all 4 answers must be in ENGLISH.`,
+    es: `Eres un generador de preguntas para parejas. Genera UNA pregunta en ESPAÑOL para la categoría "${categorie}" al nivel "${niveau}". La pregunta Y las 4 respuestas deben estar en ESPAÑOL.`,
+    ht: `Ou se yon jenatè kesyon pou koup. Jenere YON kesyon nan KREYÒL AYISYEN pou kategori "${categorie}" nan nivo "${niveau}". Kesyon AN ak 4 repons yo dwe ann kreyòl.`,
+  };
 
-  const prompt = `Tu es un générateur de questions pour un jeu de couple.
-Génère UNE question de couple en ${langueNom} pour la catégorie "${categorie}" au niveau "${niveau}".
-La question doit avoir exactement 4 réponses courtes.
-Questions déjà posées à éviter: ${historique.slice(-20).join(' | ')}
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication:
-{"e":"emoji","t":"question","r":["réponse1","réponse2","réponse3","réponse4"]}`;
+  const prompt = `${instructions[langue] || instructions.fr}
+
+Questions déjà posées à éviter: ${historique.slice(-15).join(' | ')}
+
+IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans explication, sans backticks:
+{"e":"emoji_approprié","t":"la question","r":["réponse1","réponse2","réponse3","réponse4"]}`;
 
   try {
     const response = await fetch(
@@ -29,7 +32,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 300 }
+          generationConfig: { temperature: 0.9, maxOutputTokens: 400 }
         })
       }
     );
