@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "LoveLink",
+    "slug": "lovelink2",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "com.boumabe.lovelink"
+    },
+    "ios": {
+      "bundleIdentifier": "com.boumabe.lovelink"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8f4e443d-1d46-4f3f-935d-257fcbc14c1d"
+      }
+    }
+  }
+}
