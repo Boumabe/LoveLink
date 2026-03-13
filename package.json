@@ -1,13 +1,24 @@
 {
-  "name": "lovelink-api",
+  "name": "lovelink",
   "version": "1.0.0",
-  "description": "LoveLink API server",
-  "main": "server.js",
+  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
-  }
+    "expo": "~50.0.0",
+    "expo-status-bar": "~1.11.1",
+    "react": "18.2.0",
+    "react-native": "0.73.4",
+    "expo-dev-client": "~3.3.11",
+    "firebase": "^10.8.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  },
+  "private": true
 }
+
