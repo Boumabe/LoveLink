@@ -3,19 +3,9 @@
     "version": ">= 5.0.0"
   },
   "build": {
-    "preview": {
-      "android": {
-        "buildType": "apk",
-        "credentialsSource": "local"
-      }
-    },
     "production": {
       "android": {
-        "buildType": "apk",
-        "credentialsSource": "local"
-      },
-      "ios": {
-        "credentialsSource": "local"
+        "buildType": "apk"
       }
     }
   }
