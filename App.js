@@ -5,6 +5,9 @@ import {
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 
+// On s'assure que react-native-web est bien géré pour les plateformes non-mobiles
+const isWeb = Platform.OS === 'web';
+
 // ══════════════════════════════
 //  CONFIG
 // ══════════════════════════════
@@ -15,14 +18,20 @@ const API_URL = "https://lovelink-api-jw65.onrender.com";
 //  FIREBASE REST API
 // ══════════════════════════════
 async function fbSet(path, value) {
-  await fetch(`${FB_URL}/${path}.json`, { method:'PUT', body:JSON.stringify(value) });
+  try {
+    await fetch(`${FB_URL}/${path}.json`, { method:'PUT', body:JSON.stringify(value) });
+  } catch(e) { console.error(e); }
 }
 async function fbGet(path) {
-  const r = await fetch(`${FB_URL}/${path}.json`);
-  return await r.json();
+  try {
+    const r = await fetch(`${FB_URL}/${path}.json`);
+    return await r.json();
+  } catch(e) { return null; }
 }
 async function fbPush(path, value) {
-  await fetch(`${FB_URL}/${path}.json`, { method:'POST', body:JSON.stringify(value) });
+  try {
+    await fetch(`${FB_URL}/${path}.json`, { method:'POST', body:JSON.stringify(value) });
+  } catch(e) { console.error(e); }
 }
 function fbListen(path, cb, ms=1500) {
   const id = setInterval(async () => { try { cb(await fbGet(path)); } catch(e){} }, ms);
@@ -66,9 +75,6 @@ async function genererQuestion(langue, categorie, niveau, historique = []) {
   }
 }
 
-// ══════════════════════════════
-//  HISTORIQUE ANTI-RÉPÉTITION
-// ══════════════════════════════
 async function getHistorique(sessionCode) {
   try {
     const d = await fbGet(`sessions/${sessionCode}/historique`);
@@ -80,9 +86,6 @@ async function ajouterHistorique(sessionCode, texte) {
   try { await fbPush(`sessions/${sessionCode}/historique`, texte); } catch(e) {}
 }
 
-// ══════════════════════════════
-//  LANGUES & TRADUCTIONS
-// ══════════════════════════════
 const LANGUES = [
   { id:'fr', drapeau:'🇫🇷', nom:'Français' },
   { id:'en', drapeau:'🇬🇧', nom:'English' },
@@ -150,7 +153,7 @@ const T = {
     entrerCode:'INGRESAR CÓDIGO', placeholder:'Ej: ABC123', rejoindre:'Unirse →',
     connectes:'¡Conectados!', attente:'Esperando...',
     partagerCode:'Comparte este código con tu pareja:',
-    commencer:'🚀  Elegir nivel →', retour:'← Volver',
+    commencer:'🚀  Elegir nivel →', retour:'🚀  Elegir nivel →',
     choisirEnsemble:'Elijan juntos 💞',
     niveauIntensite:'NIVEL DE INTENSIDAD', categorie:'CATEGORÍA',
     lancerQuiz:'🚀 Iniciar quiz →',
@@ -296,7 +299,11 @@ function Connexion({ t, onRetour, onDemarrer }) {
     });
   }
   async function rejoindre() {
-    if (code.length < 4) { Alert.alert('!', 'Entre le code de ton partenaire'); return; }
+    if (code.length < 4) { 
+        if (!isWeb) Alert.alert('!', 'Entre le code de ton partenaire'); 
+        else alert('Entre le code de ton partenaire');
+        return; 
+    }
     await fbSet(`sessions/${code}/j2`, 'ok');
     onDemarrer(code, false);
   }
@@ -362,7 +369,11 @@ function ChoixNiveau({ t, langue, sessionCode, estJ1, onDemarrer }) {
   }, []);
 
   async function confirmer() {
-    if (!niveau || !categorie) { Alert.alert('!', 'Choisissez un niveau et une catégorie'); return; }
+    if (!niveau || !categorie) { 
+        if (!isWeb) Alert.alert('!', 'Choisissez un niveau et une catégorie'); 
+        else alert('Choisissez un niveau et une catégorie');
+        return; 
+    }
     await fbSet(`sessions/${sessionCode}/config`, { niveau: niveau.id, categorie, confirme: true });
     onDemarrer(niveau.id, categorie);
   }
@@ -488,7 +499,7 @@ function Quiz({ t, langue, sessionCode, estJ1, niveauId, categorieKey, onFin }) 
   );
 
   return (
-    <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}>
+    <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
       <ScrollView style={s.ecran} contentContainerStyle={s.ecranC}>
         <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
           <View style={[s.niveauBadge,{borderColor:`${niveau.couleur}50`,backgroundColor:`${niveau.couleur}15`}]}>
