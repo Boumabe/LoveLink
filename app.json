@@ -25,9 +25,6 @@
       },
       "package": "com.boumabe.lovelink"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
     "extra": {
       "eas": {
         "projectId": "8f4e443d-1d46-4f3f-935d-257fcbc14c1d"
@@ -35,4 +32,3 @@
     }
   }
 }
-
