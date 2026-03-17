@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -20,25 +15,23 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.boumabe.lovelink"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.boumabe.lovelink"
+      }
     },
     "web": {
+      "favicon": "./assets/favicon.png",
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/icon.png"
+      "output": "static"
     },
-    "extra": {
-      "eas": {
-        "projectId": "8f4e443d-1d46-4f3f-935d-257fcbc14c1d"
-      }
-    }
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ]
   }
 }
