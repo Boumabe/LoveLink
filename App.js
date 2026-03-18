@@ -1,14 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import {
-  View, Text, TouchableOpacity, ScrollView,
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, Text, TouchableOpacity, ScrollView, 
   StyleSheet, SafeAreaView, StatusBar, TextInput,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 
-// On s'assure que react-native-web est bien géré pour les plateformes non-mobiles
 const isWeb = Platform.OS === 'web';
 
-  // =============================
+// =============================
 // CONFIG
 // =============================
 const FB_URL = "https://lovelink-a8e75-default-rtdb.firebaseio.com";
