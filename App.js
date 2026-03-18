@@ -8,11 +8,12 @@ import {
 // On s'assure que react-native-web est bien géré pour les plateformes non-mobiles
 const isWeb = Platform.OS === 'web';
 
-// ══════════════════════════════
-//  CONFIG
-// ══════════════════════════════
+  // =============================
+// CONFIG
+// =============================
 const FB_URL = "https://lovelink-a8e75-default-rtdb.firebaseio.com";
 const API_URL = "/api/question";
+
 
 // ══════════════════════════════
 //  FIREBASE REST API
