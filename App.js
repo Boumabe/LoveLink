@@ -1,307 +1,154 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, Text, TouchableOpacity, ScrollView, 
+import {
+  View, Text, TouchableOpacity, ScrollView,
   StyleSheet, SafeAreaView, StatusBar, TextInput,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
-  Share, Clipboard
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 
-const isWeb = Platform.OS === 'web';
-
-// =============================
-// CONFIGURATION
-// =============================
+// ══════════════════════════════
+//  CONFIG (OPTIMISÉ VERCEL)
+// ══════════════════════════════
 const FB_URL = "https://lovelink-a8e75-default-rtdb.firebaseio.com";
-const API_URL = "/api/question";
+const API_URL = "/api/question"; // Utilisation de l'URL locale Vercel
 
-// =============================
-// API REST FIREBASE (SIMPLIFIÉ)
-// =============================
+// ══════════════════════════════
+//  FIREBASE REST API
+// ══════════════════════════════
 async function fbSet(path, value) {
-  try {
-    await fetch(`${FB_URL}/${path}.json`, {
-      method: 'PUT',
-      body: JSON.stringify(value)
-    });
-  } catch(e) { console.error(e); }
+  try { await fetch(`${FB_URL}/${path}.json`, { method:'PUT', body:JSON.stringify(value) }); } catch(e){}
 }
-
 async function fbGet(path) {
   try {
-    const res = await fetch(`${FB_URL}/${path}.json`);
-    return await res.json();
+    const r = await fetch(`${FB_URL}/${path}.json`);
+    return await r.json();
   } catch(e) { return null; }
 }
-
-// =============================
-// COMPOSANTS UI
-// =============================
-const Button = ({ title, onPress, color = '#6366f1', outline = false, icon }) => (
-  <TouchableOpacity 
-    style={[styles.button, { backgroundColor: outline ? 'transparent' : color, borderColor: color, borderWidth: 2 }]} 
-    onPress={onPress}
-  >
-    <Text style={[styles.buttonText, { color: outline ? color : '#fff' }]}>{icon} {title}</Text>
-  </TouchableOpacity>
-);
-
-const Card = ({ children }) => <View style={styles.card}>{children}</View>;
-
-// =============================
-// APPLICATION PRINCIPALE
-// =============================
-export default function App() {
-  const [etape, setEtape] = useState('menu'); // menu, quiz, resultat, historique
-  const [langue, setLangue] = useState('fr');
-  const [categorie, setCategorie] = useState('Complicité');
-  const [question, setQuestion] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [points, setPoints] = useState(0);
-  const [historique, setHistorique] = useState([]);
-
-  const categories = [
-    { n: 'Complicité', e: '💕' },
-    { n: 'Humour', e: '😂' },
-    { n: 'Futur', e: '🚀' },
-    { n: 'Hot', e: '🔥' }
-  ];
-
-  const langues = [
-    { c: 'fr', n: 'Français', f: '🇫🇷' },
-    { c: 'en', n: 'English', f: '🇬🇧' },
-    { c: 'ht', n: 'Kreyòl', f: '🇭🇹' },
-    { c: 'es', n: 'Español', f: '🇪🇸' }
-  ];
-
-  // Charger l'historique au démarrage
-  useEffect(() => {
-    loadHistorique();
-  }, []);
-
-  const loadHistorique = async () => {
-    const data = await fbGet('historique');
-    if (data) setHistorique(Object.values(data).reverse());
-  };
-
-  const genererQuestion = async () => {
-    setLoading(true);
-    setEtape('quiz');
-    
-    // Questions de secours si l'IA échoue
-    const fallback = {
-      fr: "Quelle est la chose que tu préfères chez moi ?",
-      en: "What is your favorite thing about me?",
-      ht: "Kisa ou pi renmen lakay mwen?",
-      es: "¿Qué est lo que más te gusta de mí?"
-    };
-
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: categorie, language: langue })
-      });
-
-      const data = await response.json();
-      
-      if (data && data.question) {
-        setQuestion(data);
-      } else {
-        throw new Error("Erreur format");
-      }
-    } catch (error) {
-      console.log("IA indisponible, fallback utilisé");
-      setQuestion({
-        question: fallback[langue] || fallback['fr'],
-        options: ["Option A", "Option B", "Option C", "Option D"]
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const repondre = async (index) => {
-    const nouvelleReponse = {
-      date: new Date().toLocaleString(),
-      question: question.question,
-      reponse: question.options[index],
-      langue: langue,
-      categorie: categorie
-    };
-    
-    setPoints(points + 10);
-    await fbSet(`historique/${Date.now()}`, nouvelleReponse);
-    loadHistorique();
-    setEtape('resultat');
-  };
-
-  const partager = async () => {
-    try {
-      await Share.share({ message: `LoveLink Question : ${question.question}` });
-    } catch (e) {}
-  };
-
-  // --- ECRANS ---
-
-  if (etape === 'menu') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.logo}>LoveLink 💖</Text>
-          <Text style={styles.subtitle}>Renforcez votre complicité</Text>
-
-          <Card>
-            <Text style={styles.label}>Langue du jeu :</Text>
-            <View style={styles.row}>
-              {langues.map(l => (
-                <TouchableOpacity 
-                  key={l.c} 
-                  style={[styles.langBtn, langue === l.c && styles.langBtnActive]}
-                  onPress={() => setLangue(l.c)}
-                >
-                  <Text style={styles.emoji}>{l.f}</Text>
-                  <Text style={styles.langText}>{l.n}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Card>
-
-          <Text style={styles.label}>Choisissez un thème :</Text>
-          <View style={styles.grid}>
-            {categories.map(c => (
-              <TouchableOpacity 
-                key={c.n} 
-                style={[styles.catCard, categorie === c.n && styles.catCardActive]}
-                onPress={() => setCategorie(c.n)}
-              >
-                <Text style={styles.bigEmoji}>{c.e}</Text>
-                <Text style={styles.catText}>{c.n}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Button title="LANCER LE QUIZ" onPress={genererQuestion} />
-          
-          <TouchableOpacity onPress={() => setEtape('historique')}>
-            <Text style={styles.link}>Voir l'historique des réponses</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  if (etape === 'quiz') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setEtape('menu')}>
-            <Text style={styles.back}>🔙 Menu</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{categorie}</Text>
-        </View>
-
-        <View style={styles.content}>
-          {loading ? (
-            <View style={styles.center}>
-              <ActivityIndicator size="large" color="#6366f1" />
-              <Text style={styles.loadingText}>Gemini génère une question unique...</Text>
-            </View>
-          ) : (
-            <>
-              <Card>
-                <Text style={styles.questionText}>{question?.question}</Text>
-              </Card>
-              <View style={styles.optionsContainer}>
-                {question?.options?.map((opt, i) => (
-                  <TouchableOpacity key={i} style={styles.optionBtn} onPress={() => repondre(i)}>
-                    <Text style={styles.optionText}>{opt}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (etape === 'resultat') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <Text style={styles.bigEmoji}>✨</Text>
-          <Text style={styles.logo}>Bravo !</Text>
-          <Text style={styles.points}>+10 points de complicité</Text>
-          <View style={{ width: '80%', marginTop: 20 }}>
-            <Button title="AUTRE QUESTION" onPress={genererQuestion} />
-            <Button title="PARTAGER" outline onPress={partager} />
-            <TouchableOpacity onPress={() => setEtape('menu')}>
-              <Text style={styles.link}>Retour au menu</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (etape === 'historique') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setEtape('menu')}>
-            <Text style={styles.back}>🔙 Retour</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Historique</Text>
-        </View>
-        <ScrollView style={styles.scroll}>
-          {historique.map((h, i) => (
-            <Card key={i}>
-              <Text style={styles.histDate}>{h.date} • {h.categorie}</Text>
-              <Text style={styles.histQ}>{h.question}</Text>
-              <Text style={styles.histR}>✅ {h.reponse}</Text>
-            </Card>
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
+async function fbPush(path, value) {
+  try { await fetch(`${FB_URL}/${path}.json`, { method:'POST', body:JSON.stringify(value) }); } catch(e) {}
+}
+function fbListen(path, cb, ms=1500) {
+  const id = setInterval(async () => { try { cb(await fbGet(path)); } catch(e){} }, ms);
+  return () => clearInterval(id);
 }
 
-// =============================
-// STYLES
-// =============================
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  scroll: { padding: 20 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  logo: { fontSize: 32, fontWeight: '900', color: '#1e293b', textAlign: 'center', marginTop: 10 },
-  subtitle: { fontSize: 16, color: '#64748b', textAlign: 'center', marginBottom: 30 },
-  label: { fontSize: 14, fontWeight: '700', color: '#475569', marginBottom: 10, marginTop: 10 },
-  card: { backgroundColor: '#fff', padding: 20, borderRadius: 20, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
-  langBtn: { alignItems: 'center', padding: 10, borderRadius: 12, width: '23%' },
-  langBtnActive: { backgroundColor: '#e0e7ff', borderWidth: 1, borderColor: '#6366f1' },
-  emoji: { fontSize: 24 },
-  langText: { fontSize: 10, color: '#1e293b', marginTop: 5 },
-  catCard: { width: '48%', backgroundColor: '#fff', padding: 20, borderRadius: 20, alignItems: 'center', marginBottom: 15, borderWidth: 2, borderColor: 'transparent' },
-  catCardActive: { borderColor: '#6366f1', backgroundColor: '#e0e7ff' },
-  bigEmoji: { fontSize: 40, marginBottom: 10 },
-  catText: { fontWeight: '700', color: '#1e293b' },
-  button: { padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 10 },
-  buttonText: { fontSize: 16, fontWeight: '800' },
-  link: { textAlign: 'center', marginTop: 20, color: '#6366f1', fontWeight: '600' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  headerTitle: { fontSize: 18, fontWeight: '800', marginLeft: 20 },
-  back: { color: '#6366f1', fontWeight: '600' },
-  questionText: { fontSize: 22, fontWeight: '800', color: '#1e293b', textAlign: 'center', lineHeight: 30 },
-  optionsContainer: { padding: 20 },
-  optionBtn: { backgroundColor: '#fff', padding: 20, borderRadius: 15, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-  optionText: { fontSize: 16, color: '#334155', fontWeight: '600' },
-  loadingText: { marginTop: 20, color: '#64748b', textAlign: 'center' },
-  points: { fontSize: 18, color: '#22c55e', fontWeight: '700', marginTop: 5 },
-  histDate: { fontSize: 10, color: '#94a3b8', marginBottom: 5 },
-  histQ: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
-  histR: { fontSize: 14, color: '#6366f1', marginTop: 5 }
+// ══════════════════════════════
+//  FALLBACK & TRADUCTIONS
+// ══════════════════════════════
+const FALLBACK = [
+  {e:"💕",t:"Quelle est la chose que tu préfères faire avec moi ?",r:["Parler","Rire","Câlins","Voyager"]},
+  {e:"🌙",t:"Quel est le moment où tu penses le plus à moi ?",r:["Matin","Soir","Journée","Tout le temps"]},
+];
+
+const T = {
+  fr: {
+    tagline:'QUIZ DES COUPLES', desc:'Questions générées par IA 💞', jouerCouple:'💑  Jouer en couple →',
+    seConnecter:'Se connecter', creerSession:'Créer une session', entrerCode:'ENTRER UN CODE',
+    placeholder:'Ex: ABC123', rejoindre:'Rejoindre →', connectes:'Connectés !', attente:'En attente...',
+    partagerCode:'Partage ce code :', commencer:'🚀  Choisir le niveau →', retour:'← Retour',
+    generating:'✨ L\'IA génère...', choixReponse:'💭 Choisis ta réponse', attentePartner:'⏳ Attente patnè...',
+    memeReponse:'💞 Vous pensez pareil !', resume:'Résumé →', sessionTerminee:'Session terminée !', accueil:'← Accueil'
+  },
+  ht: {
+    tagline:'JWÈT KÈ POU KOUP', desc:'Kesyon jenere pa IA 💞', jouerCouple:'💑  Jwe an koup →',
+    seConnecter:'Konekte', creerSession:'Kreye sesyon', entrerCode:'ANTRE KÒD LA',
+    placeholder:'Egz: ABC123', rejoindre:'Rantre →', connectes:'Konekte!', attente:'Ap tann...',
+    partagerCode:'Pataje kòd sa :', commencer:'🚀  Chwazi nivo →', retour:'← Tounen',
+    generating:'✨ IA ap kreye...', choixReponse:'💭 Chwazi repons ou', attentePartner:'⏳ Ap tann patnè...',
+    memeReponse:'💞 Nou panse menm bagay!', resume:'Rezime →', sessionTerminee:'Sesyon fini!', accueil:'← Akèy'
+  }
+};
+
+const NIVEAUX = [
+  { id:'doux', emoji:'🌸', nom:'Se connaître', couleur:'#10D9A0' },
+  { id:'intense', emoji:'🔥', nom:'Intense', couleur:'#F5A623' },
+  { id:'coquin', emoji:'🍑', nom:'Coquin 🔞', couleur:'#FF3D6B' },
+];
+
+const CATS = ['💕 Complicité', '🌙 Intimité', '✈️ Distance', '🔮 Rêves'];
+const genCode = () => Math.random().toString(36).substring(2,8).toUpperCase();
+
+// ══════════════════════════════
+//  APP PRINCIPALE
+// ══════════════════════════════
+export default function App() {
+  const [langue, setLangue] = useState(null);
+  const [ecran, setEcran] = useState('langue');
+  const [session, setSession] = useState(null);
+  const [estJ1, setEstJ1] = useState(true);
+  const [niveauId, setNiveauId] = useState('doux');
+  const [categorieKey, setCategorieKey] = useState(CATS[0]);
+  const [q, setQ] = useState(null);
+  const [load, setLoad] = useState(false);
+  const [num, setNum] = useState(1);
+
+  const t = T[langue] || T.fr;
+
+  // Fonctions de navigation
+  const demarrerSession = (code, j1) => { setSession(code); setEstJ1(j1); setEcran('choix'); };
+
+  if (ecran === 'langue') return (
+    <SafeAreaView style={s.fond}><View style={s.centre}>
+      <Text style={s.bigE}>💞</Text><Text style={s.titre1}>LoveLink</Text>
+      <TouchableOpacity style={s.langueBtn} onPress={() => {setLangue('fr'); setEcran('accueil')}}>
+        <Text style={{fontSize:28}}>🇫🇷</Text><Text style={s.langueNom}>Français</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={s.langueBtn} onPress={() => {setLangue('ht'); setEcran('accueil')}}>
+        <Text style={{fontSize:28}}>🇭🇹</Text><Text style={s.langueNom}>Kreyòl</Text>
+      </TouchableOpacity>
+    </View></SafeAreaView>
+  );
+
+  if (ecran === 'accueil') return (
+    <SafeAreaView style={s.fond}><View style={s.centre}>
+      <Text style={s.bigE}>💞</Text><Text style={s.titre1}>LoveLink</Text>
+      <Text style={s.sous}>{t.tagline}</Text><Text style={s.desc}>{t.desc}</Text>
+      <TouchableOpacity style={s.btnR} onPress={() => setEcran('connexion')}>
+        <Text style={s.btnRT}>{t.jouerCouple}</Text>
+      </TouchableOpacity>
+    </View></SafeAreaView>
+  );
+
+  if (ecran === 'connexion') return (
+    <SafeAreaView style={s.fond}><ScrollView contentContainerStyle={s.ecranC}>
+      <TouchableOpacity onPress={() => setEcran('accueil')}><Text style={s.retour}>{t.retour}</Text></TouchableOpacity>
+      <Text style={s.titre2}>{t.seConnecter}</Text>
+      <TouchableOpacity style={s.carteG} onPress={async () => {
+        const code = genCode();
+        await fbSet(`sessions/${code}`, { j1:'ok', ts:Date.now() });
+        demarrerSession(code, true);
+      }}>
+        <Text style={{fontSize:36}}>🔗</Text><Text style={s.carteN}>{t.creerSession}</Text>
+      </TouchableOpacity>
+    </ScrollView></SafeAreaView>
+  );
+
+  return (
+    <SafeAreaView style={s.fond}><View style={s.centre}>
+      <Text style={s.titre2}>Prêt pour le Quiz</Text>
+      <TouchableOpacity style={s.btnR} onPress={() => setEcran('langue')}>
+        <Text style={s.btnRT}>{t.accueil}</Text>
+      </TouchableOpacity>
+    </View></SafeAreaView>
+  );
+}
+
+// ══════════════════════════════
+//  STYLES (TON DESIGN ORIGINAL)
+// ══════════════════════════════
+const s = StyleSheet.create({
+  fond:{ flex:1, backgroundColor:'#0E0A14' },
+  centre:{ flex:1, alignItems:'center', justifyContent:'center', padding:28 },
+  ecranC:{ padding:20, alignItems:'center' },
+  bigE:{ fontSize:64, marginBottom:8 },
+  titre1:{ fontSize:42, fontWeight:'800', color:'#F9F2E7', letterSpacing:-1, marginBottom:4 },
+  titre2:{ fontSize:24, fontWeight:'700', color:'#F9F2E7', marginBottom:12, textAlign:'center' },
+  sous:{ fontSize:11, letterSpacing:3, color:'#F5A623', marginBottom:20, textAlign:'center' },
+  desc:{ fontSize:14, color:'rgba(249,242,231,0.5)', textAlign:'center', lineHeight:22, marginBottom:20, maxWidth:300 },
+  langueBtn:{ flexDirection:'row', alignItems:'center', gap:14, backgroundColor:'rgba(255,255,255,0.05)', borderWidth:1, borderColor:'rgba(255,255,255,0.1)', borderRadius:16, padding:16, width:Platform.OS==='web'?300:'100%', marginBottom:10 },
+  langueNom:{ fontSize:18, fontWeight:'600', color:'#F9F2E7' },
+  btnR:{ backgroundColor:'#FF3D6B', borderRadius:50, paddingVertical:16, paddingHorizontal:32, width:Platform.OS==='web'?300:'100%', alignItems:'center' },
+  btnRT:{ color:'white', fontSize:15, fontWeight:'600' },
+  retour:{ color:'rgba(249,242,231,0.5)', fontSize:15, marginBottom:16 },
+  carteG:{ backgroundColor:'rgba(255,255,255,0.05)', borderWidth:1, borderColor:'rgba(255,255,255,0.1)', borderRadius:20, padding:24, width:'100%', alignItems:'center' },
+  carteN:{ fontSize:16, fontWeight:'600', color:'#F9F2E7', marginTop:8 }
 });
