@@ -9,7 +9,7 @@ import {
 //  CONFIG
 // ══════════════════════════════
 const FB_URL = "https://lovelink-a8e75-default-rtdb.firebaseio.com";
-const API_URL = "/api/question";
+const API_URL = "/api/question"; // ✅ URL correcte pour Vercel
 
 // ══════════════════════════════
 //  FIREBASE REST API
@@ -46,11 +46,11 @@ const FALLBACK = [
 ];
 
 // ══════════════════════════════
-//  GÉNÉRATION IA VIA RENDER
+//  GÉNÉRATION IA VIA VERCEL
 // ══════════════════════════════
 async function genererQuestion(langue, categorie, niveau, historique = []) {
   try {
-    const response = await fetch(`${API_URL}/question`, {
+    const response = await fetch(API_URL, { // ✅ CORRIGÉ — plus de double /question
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ langue, categorie, niveau, historique })
@@ -252,7 +252,11 @@ function ChoixLangue({ onChoisir }) {
 function Accueil({ t, onCouple, onChangerLangue }) {
   const [iaOk, setIaOk] = useState(null);
   useEffect(() => {
-    fetch(`${API_URL}/`).then(r => setIaOk(r.ok)).catch(() => setIaOk(false));
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ langue:'fr', categorie:'test', niveau:'doux', historique:[] })
+    }).then(r => setIaOk(r.ok)).catch(() => setIaOk(false));
   }, []);
 
   return (
@@ -499,16 +503,13 @@ function Quiz({ t, langue, sessionCode, estJ1, niveauId, categorieKey, onFin }) 
             <Text style={s.btnFinT}>{t.resume}</Text>
           </TouchableOpacity>
         </View>
-
         <Text style={{color:'rgba(249,242,231,0.3)',fontSize:11,marginBottom:14,textAlign:'center'}}>
           Q{num} · {categorieKey}
         </Text>
-
         <View style={[s.carteQ,{borderColor:`${niveau.couleur}30`}]}>
           <Text style={{fontSize:46,marginBottom:8}}>{q.e}</Text>
           <Text style={{color:'#F9F2E7',fontSize:18,fontWeight:'600',textAlign:'center',lineHeight:28}}>{q.t}</Text>
         </View>
-
         {!modePerso && (
           <View style={{gap:9,marginBottom:10}}>
             {(q.r||[]).map((r, i) => {
@@ -538,7 +539,6 @@ function Quiz({ t, langue, sessionCode, estJ1, niveauId, categorieKey, onFin }) 
             )}
           </View>
         )}
-
         {modePerso && choisi===null && (
           <View style={s.persoBox}>
             <TextInput style={s.persoInput} placeholder={t.ecrireTa}
@@ -554,7 +554,6 @@ function Quiz({ t, langue, sessionCode, estJ1, niveauId, categorieKey, onFin }) 
             </View>
           </View>
         )}
-
         {choisi!==null && typeof choisi==='string' && choisi.startsWith('perso:') && (
           <View style={[s.repN,s.repC,{marginBottom:10}]}>
             <Text style={{color:'#F9F2E7',fontSize:14,flex:1}}>✏️ {choisi.replace('perso:','')}</Text>
@@ -565,13 +564,11 @@ function Quiz({ t, langue, sessionCode, estJ1, niveauId, categorieKey, onFin }) 
             <Text style={{color:'#F9F2E7',fontSize:14,flex:1}}>👩 ✏️ {choixP.replace('perso:','')}</Text>
           </View>
         )}
-
         {!lesDeux && (
           <View style={s.msgBox}>
             <Text style={s.msgTxt}>{choisi===null ? t.choixReponse : t.attentePartner}</Text>
           </View>
         )}
-
         {lesDeux && (
           <View style={[s.msgBox,{
             borderColor:memeReponse?'rgba(16,217,160,0.4)':'rgba(245,166,35,0.4)',
@@ -585,7 +582,6 @@ function Quiz({ t, langue, sessionCode, estJ1, niveauId, categorieKey, onFin }) 
             </Text>
           </View>
         )}
-
         {lesDeux && (
           <TouchableOpacity style={[s.btnR,{marginTop:16,backgroundColor:niveau.couleur}]} onPress={() => setNum(n => n+1)}>
             <Text style={s.btnRT}>{t.questionSuivante}</Text>
