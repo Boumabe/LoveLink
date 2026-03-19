@@ -8,8 +8,7 @@ export default async function handler(req, res) {
 
   try {
     const { langue, categorie, niveau, historique } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const prompt = `Génère une question de couple unique pour la catégorie "${categorie}" et le niveau "${niveau}".
     Langue de réponse : ${langue}.
     Réponds EXCLUSIVEMENT en JSON pur avec ce format :
