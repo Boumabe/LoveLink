@@ -4,6 +4,9 @@ import {
   SafeAreaView, StatusBar, ActivityIndicator, Share, Platform, Alert, Clipboard 
 } from 'react-native';
 
+// =============================
+// CONFIGURATION
+// =============================
 const FB_URL = "https://lovelink-a8e75-default-rtdb.firebaseio.com";
 const API_URL = "/api/question";
 
@@ -14,12 +17,14 @@ export default function App() {
   const [question, setQuestion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [points, setPoints] = useState(0);
+  const [historique, setHistorique] = useState([]);
 
+  // Configuration des menus (Ajout ES)
   const categories = [
-    { n: 'Complicité', e: '💕', c: '#ff4d4d' },
-    { n: 'Humour', e: '😂', c: '#ffb347' },
-    { n: 'Futur', e: '🚀', c: '#6366f1' },
-    { n: 'Hot', e: '🔥', c: '#9c27b0' }
+    { n: 'Complicité', e: '💕' },
+    { n: 'Humour', e: '😂' },
+    { n: 'Futur', e: '🚀' },
+    { n: 'Hot', e: '🔥' }
   ];
 
   const langues = [
@@ -29,10 +34,26 @@ export default function App() {
     { c: 'es', n: 'Español', f: '🇪🇸' }
   ];
 
-  // Système de génération via Gemini
+  // Charger les données au démarrage
+  useEffect(() => {
+    recupererDonnees();
+  }, []);
+
+  const recupererDonnees = async () => {
+    try {
+      const res = await fetch(`${FB_URL}/stats.json`);
+      const data = await res.json();
+      if (data) {
+        setPoints(data.points || 0);
+        if (data.historique) setHistorique(Object.values(data.historique).reverse());
+      }
+    } catch (e) { console.log("Erreur chargement Firebase"); }
+  };
+
   const genererQuestion = async () => {
     setLoading(true);
     setEtape('quiz');
+    
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -44,105 +65,119 @@ export default function App() {
         setQuestion(data);
       } else { throw new Error(); }
     } catch (error) {
+      // MODE SECOURS AVEC ESPAGNOL
       const fallbacks = {
-        fr: "Quel est le projet que tu rêves de réaliser avec moi cette année ?",
-        en: "What project do you dream of achieving with me this year?",
-        ht: "Ki pwojè ou ta renmen nou reyalize ansanm ane sa?",
-        es: "¿Qué proyecto sueñas con realizar conmigo este año?"
+        fr: "Quel est ton plus grand rêve pour nous ?",
+        en: "What is your biggest dream for us?",
+        ht: "Kisa ki pi gwo rèv ou genyen pou nou de a?",
+        es: "¿Cuál es tu mayor sueño para nosotros?"
       };
       setQuestion({
         question: fallbacks[langue] || fallbacks['fr'],
-        options: ["Voyager ensemble", "Créer un projet", "Acheter quelque chose", "Se marier/Fêter"]
+        options: ["Option A", "Option B", "Option C", "Option D"]
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const validerReponse = async (opt) => {
-    const nextScore = points + 10;
-    setPoints(nextScore);
-    // Sauvegarde silencieuse sur Firebase
-    fetch(`${FB_URL}/stats/points.json`, { method: 'PUT', body: JSON.stringify(nextScore) });
+  const sauvegarderReponse = async (reponseChoisie) => {
+    const nouveauScore = points + 10;
+    const nouvelleEntree = {
+      date: new Date().toLocaleDateString(),
+      question: question.question,
+      reponse: reponseChoisie
+    };
+
+    setPoints(nouveauScore);
     setEtape('menu');
-    if(Platform.OS !== 'web') Alert.alert("Bravo !", "+10 points de complicité.");
-    else alert("Félicitations ! +10 points de complicité.");
+
+    try {
+      await fetch(`${FB_URL}/stats/points.json`, { method: 'PUT', body: JSON.stringify(nouveauScore) });
+      await fetch(`${FB_URL}/stats/historique.json`, { 
+        method: 'POST', 
+        body: JSON.stringify(nouvelleEntree) 
+      });
+      recupererDonnees();
+    } catch (e) { console.log("Erreur sauvegarde"); }
+    
+    if(Platform.OS !== 'web') Alert.alert("Bravo !", "+10 points.");
   };
 
   const partager = async () => {
-    const msg = `LoveLink ❤️ [${categorie}] : ${question.question}`;
+    const msg = `LoveLink ❤️ [${langue.toUpperCase()}] : ${question.question}`;
     if (Platform.OS === 'web') {
       Clipboard.setString(msg);
-      alert("Copié ! Envoie-le vite à Milly.");
+      alert("Copié dans le presse-papier ! Envoie-le à Milly.");
     } else {
       await Share.share({ message: msg });
     }
   };
 
+  // --- RENDU ---
   if (etape === 'menu') {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.logo}>LoveLink</Text>
-          <View style={styles.scoreContainer}>
-            <Text style={styles.scoreVal}>{points}</Text>
-            <Text style={styles.scoreLabel}>POINTS COMPLICITÉ</Text>
-          </View>
+          <Text style={styles.logo}>LoveLink 💖</Text>
+          <View style={styles.scoreBadge}><Text style={styles.scoreText}>🏆 {points} Points</Text></View>
 
-          <View style={styles.section}>
-            <Text style={styles.label}>Choisir la langue :</Text>
+          <View style={styles.card}>
+            <Text style={styles.label}>Idioma / Langue :</Text>
             <View style={styles.row}>
               {langues.map(l => (
-                <TouchableOpacity key={l.c} style={[styles.langCard, langue === l.c && styles.langActive]} onPress={() => setLangue(l.c)}>
+                <TouchableOpacity key={l.c} style={[styles.langBtn, langue === l.c && styles.langBtnActive]} onPress={() => setLangue(l.c)}>
                   <Text style={styles.emoji}>{l.f}</Text>
-                  <Text style={styles.langName}>{l.n}</Text>
+                  <Text style={styles.langText}>{l.n}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          <Text style={styles.label}>Thème de votre moment :</Text>
+          <Text style={styles.label}>Thème :</Text>
           <View style={styles.grid}>
             {categories.map(c => (
-              <TouchableOpacity key={c.n} style={[styles.catCard, categorie === c.n && {borderColor: c.c, backgroundColor: c.c+'10'}]} onPress={() => setCategorie(c.n)}>
+              <TouchableOpacity key={c.n} style={[styles.catCard, categorie === c.n && styles.catCardActive]} onPress={() => setCategorie(c.n)}>
                 <Text style={styles.bigEmoji}>{c.e}</Text>
-                <Text style={[styles.catText, {color: c.c}]}>{c.n}</Text>
+                <Text style={styles.catText}>{c.n}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <TouchableOpacity style={styles.playBtn} onPress={genererQuestion}>
-            <Text style={styles.playBtnText}>DÉCOUVRIR LA QUESTION</Text>
+          <TouchableOpacity style={styles.mainBtn} onPress={genererQuestion}>
+            <Text style={styles.mainBtnText}>EMPIEZA / JOUER</Text>
           </TouchableOpacity>
+
+          {historique.length > 0 && (
+            <View style={{width:'100%', marginTop: 20}}>
+               <Text style={styles.label}>Dernière réponse :</Text>
+               <View style={styles.card}><Text style={styles.histText}>"{historique[0].reponse}"</Text></View>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, {backgroundColor: '#fff'}]}>
-      <View style={styles.nav}>
-        <TouchableOpacity onPress={() => setEtape('menu')}><Text style={styles.back}>⬅ Quitter</Text></TouchableOpacity>
-        <Text style={styles.navTitle}>{categorie}</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerNav}>
+        <TouchableOpacity onPress={() => setEtape('menu')}><Text style={styles.backBtn}>🔙</Text></TouchableOpacity>
+        <Text style={styles.headerTitle}>{categorie}</Text>
       </View>
-      <View style={styles.quizContent}>
+      <View style={styles.content}>
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color="#ff4d4d" />
-            <Text style={styles.loadTxt}>Gemini crée votre moment...</Text>
-          </View>
+          <View style={styles.center}><ActivityIndicator size="large" color="#ff4d4d" /><Text style={styles.loadingText}>Gemini réfléchit...</Text></View>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.qCard}><Text style={styles.qText}>{question?.question}</Text></View>
+          <ScrollView>
+            <View style={styles.questionCard}><Text style={styles.questionText}>{question?.question}</Text></View>
             {question?.options?.map((opt, i) => (
-              <TouchableOpacity key={i} style={styles.optBtn} onPress={() => validerReponse(opt)}>
-                <Text style={styles.optTxt}>{opt}</Text>
+              <TouchableOpacity key={i} style={styles.optionBtn} onPress={() => sauvegarderReponse(opt)}>
+                <Text style={styles.optionText}>{opt}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={styles.share} onPress={partager}>
-              <Text style={styles.shareTxt}>Envoyer à Milly 💖</Text>
-            </TouchableOpacity>
+            <TouchableOpacity style={styles.shareBtn} onPress={partager}><Text style={styles.shareBtnText}>Partager avec Milly 📲</Text></TouchableOpacity>
           </ScrollView>
         )}
       </View>
@@ -152,34 +187,35 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fffafa' },
-  scroll: { padding: 25, alignItems: 'center' },
-  logo: { fontSize: 42, fontWeight: '900', color: '#ff4d4d', letterSpacing: -1 },
-  scoreContainer: { alignItems: 'center', marginVertical: 20, backgroundColor: '#fff', padding: 15, borderRadius: 25, width: '100%', elevation: 2 },
-  scoreVal: { fontSize: 32, fontWeight: '900', color: '#ff4d4d' },
-  scoreLabel: { fontSize: 10, fontWeight: '700', color: '#999', letterSpacing: 1 },
-  section: { width: '100%', marginBottom: 20 },
-  label: { fontWeight: '800', color: '#444', marginBottom: 15, alignSelf: 'flex-start' },
+  scroll: { padding: 20, alignItems: 'center' },
+  logo: { fontSize: 38, fontWeight: '900', color: '#ff4d4d', marginTop: 10 },
+  scoreBadge: { backgroundColor: '#ffe5e5', paddingHorizontal: 15, paddingVertical: 5, borderRadius: 20, marginBottom: 20 },
+  scoreText: { color: '#ff4d4d', fontWeight: 'bold' },
+  card: { backgroundColor: '#fff', padding: 15, borderRadius: 20, width: '100%', marginBottom: 15, elevation: 1 },
+  label: { fontWeight: '800', marginBottom: 10, color: '#444', alignSelf: 'flex-start' },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  langCard: { alignItems: 'center', padding: 10, borderRadius: 15, width: '23%', backgroundColor: '#fff' },
-  langActive: { backgroundColor: '#ffe5e5', borderWidth: 1, borderColor: '#ff4d4d' },
-  emoji: { fontSize: 22 },
-  langName: { fontSize: 10, fontWeight: '600', marginTop: 5 },
+  langBtn: { alignItems: 'center', padding: 8, borderRadius: 12, width: '23%' },
+  langBtnActive: { backgroundColor: '#fff0f0', borderWidth: 1, borderColor: '#ff4d4d' },
+  emoji: { fontSize: 24 },
+  langText: { fontSize: 10, marginTop: 5, fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' },
-  catCard: { width: '48%', backgroundColor: '#fff', padding: 20, borderRadius: 25, alignItems: 'center', marginBottom: 15, borderWidth: 2, borderColor: '#f0f0f0' },
+  catCard: { width: '48%', backgroundColor: '#fff', padding: 15, borderRadius: 20, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#eee' },
+  catCardActive: { borderColor: '#ff4d4d', backgroundColor: '#fff5f5' },
   bigEmoji: { fontSize: 35 },
-  catText: { fontWeight: '800', marginTop: 10 },
-  playBtn: { backgroundColor: '#ff4d4d', padding: 22, borderRadius: 25, width: '100%', alignItems: 'center', shadowColor: '#ff4d4d', shadowOpacity: 0.3, shadowRadius: 10 },
-  playBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
-  nav: { flexDirection: 'row', padding: 20, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  back: { color: '#ff4d4d', fontWeight: '700' },
-  navTitle: { flex: 1, textAlign: 'center', fontWeight: '800', fontSize: 18, marginRight: 50 },
-  quizContent: { flex: 1, padding: 20 },
-  qCard: { backgroundColor: '#f8f9fa', padding: 35, borderRadius: 30, marginBottom: 25 },
-  qText: { fontSize: 24, fontWeight: '800', textAlign: 'center', color: '#1a1a1a', lineHeight: 32 },
-  optBtn: { backgroundColor: '#fff', padding: 20, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#eee' },
-  optTxt: { textAlign: 'center', fontSize: 17, fontWeight: '600', color: '#444' },
-  share: { marginTop: 20, alignItems: 'center' },
-  shareTxt: { color: '#ff4d4d', fontWeight: '800', fontSize: 16 },
+  catText: { fontWeight: '700', marginTop: 5, fontSize: 13 },
+  mainBtn: { backgroundColor: '#ff4d4d', padding: 20, borderRadius: 20, width: '100%', alignItems: 'center', marginTop: 10 },
+  mainBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
+  headerNav: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '800', marginRight: 40 },
+  backBtn: { fontSize: 20 },
+  content: { flex: 1, padding: 20 },
+  questionCard: { backgroundColor: '#fff', padding: 30, borderRadius: 25, marginBottom: 20, elevation: 3 },
+  questionText: { fontSize: 22, fontWeight: '800', textAlign: 'center', color: '#1a1a1a' },
+  optionBtn: { backgroundColor: '#fff', padding: 18, borderRadius: 15, marginBottom: 10, borderWidth: 1, borderColor: '#eee' },
+  optionText: { textAlign: 'center', fontSize: 16, fontWeight: '600' },
+  shareBtn: { marginTop: 15, alignItems: 'center' },
+  shareBtnText: { color: '#ff4d4d', fontWeight: '800' },
+  histText: { fontStyle: 'italic', color: '#666', textAlign: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadTxt: { marginTop: 20, color: '#ff4d4d', fontWeight: '700' }
+  loadingText: { marginTop: 15, color: '#999' }
 });
