@@ -10,8 +10,7 @@ import {
 //  CONFIG
 // ══════════════════════════════════════════════════════════════
 const FB_URL = "https://lovelink-a8e75-default-rtdb.firebaseio.com";
-// ⚠️ Remplace par l'adresse de ton projet Vercel (nécessaire pour l'APK Android)
-const API_BASE = "https://VOTRE-PROJET.vercel.app";
+const API_BASE = "https://vercel.com/boumabes-projects/love-link";
 const API_URL = Platform.OS === 'web' ? "/api/question" : `${API_BASE}/api/question`;
 
 async function fbSet(p,v){const r=await fetch(`${FB_URL}/${p}.json`,{method:'PUT',body:JSON.stringify(v)});if(!r.ok)throw new Error('fb '+r.status);}
