@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "LoveLink",
+    "slug": "lovelink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E0A14",
+    "splash": { "backgroundColor": "#0E0A14", "resizeMode": "contain" },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.boumabe.lovelink",
+      "versionCode": 1,
+      "backgroundColor": "#0E0A14"
+    },
+    "web": { "bundler": "webpack" },
+    "platforms": ["ios", "android", "web"]
+  }
+}
