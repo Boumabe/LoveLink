@@ -1,0 +1,30 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "invites": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('owner').val() === auth.uid)"
+      }
+    },
+
+    "couples": {
+      "$cid": {
+        ".read": "auth != null && data.child('members').child(auth.uid).exists()",
+        ".write": "auth != null && (!data.exists() || data.child('members').child(auth.uid).exists())",
+        "members": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('couples').child($cid).child('open').val() === true"
+          }
+        }
+      }
+    },
+
+    "sessions": { "$sid": { ".read": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()", ".write": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()" } },
+    "verite":   { "$sid": { ".read": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()", ".write": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()" } },
+    "devine":   { "$sid": { ".read": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()", ".write": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()" } },
+    "couple":   { "$sid": { ".read": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()", ".write": "auth != null && root.child('couples').child($sid.split('_')[0]).child('members').child(auth.uid).exists()" } }
+  }
+}
